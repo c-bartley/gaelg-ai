@@ -19,6 +19,7 @@ import json
 import tempfile
 import logging
 import logging.handlers
+import subprocess
 import time
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -511,7 +512,6 @@ def synthesize_text(text: str, output_path: str):
 def normalise_audio(input_path: str) -> str:
     """Convert any audio file to 16kHz mono 16-bit PCM WAV via ffmpeg.
     Returns path to the normalised temp file (caller must delete it)."""
-    import subprocess
     out_tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
     out_tmp_name = out_tmp.name
     out_tmp.close()
@@ -737,7 +737,7 @@ async def shutdown():
 
 class SynthesizeRequest(BaseModel):
     text: str
-    gender: str = "male"  # "male" = original TTS voice | "female" = anonymised via kNN-VC
+    gender: str = "male"  # "male" or "female" — both anonymised via mandatory kNN-VC (privacy protection)
     class Config:
         json_schema_extra = {"example": {"text": "Fastyr mie, kys t'ou?", "gender": "male"}}
 
@@ -775,7 +775,7 @@ async def serve_frontend():
 
 @app.post("/synthesize")
 async def synthesize(req: SynthesizeRequest, request: Request):
-    ip = request.client.host
+    ip = request.client.host if request.client else "unknown"
     allowed, retry_after = check_rate_limit(ip)
     if not allowed:
         raise HTTPException(
@@ -802,8 +802,8 @@ async def synthesize(req: SynthesizeRequest, request: Request):
     text = req.text.strip()
     if not text:
         raise HTTPException(status_code=400, detail="Text must not be empty.")
-    if len(text) > 2000:
-        raise HTTPException(status_code=400, detail="Text too long (max 2000 chars).")
+    if len(text) > 500:
+        raise HTTPException(status_code=400, detail="Text too long (max 500 chars).")
     if req.gender not in ("male", "female"):
         raise HTTPException(status_code=400, detail="gender must be 'male' or 'female'.")
 
@@ -875,7 +875,7 @@ async def transcribe(
     files: Optional[List[UploadFile]] = File(None),
     file: Optional[UploadFile] = File(None),
 ):
-    ip = request.client.host
+    ip = request.client.host if request.client else "unknown"
     allowed, retry_after = check_rate_limit(ip)
     if not allowed:
         raise HTTPException(
@@ -904,8 +904,11 @@ async def transcribe(
     results = []
 
     for file in files:
-        if file.content_type and file.content_type not in allowed_types:
-            results.append({"filename": file.filename, "error": f"Unsupported audio type: {file.content_type}"})
+        fname = file.filename or "unnamed"
+
+        # Reject missing or disallowed content types
+        if not file.content_type or file.content_type not in allowed_types:
+            results.append({"filename": fname, "error": f"Unsupported or missing audio type: {file.content_type}"})
             continue
 
         tmp_path = None
@@ -917,7 +920,6 @@ async def transcribe(
 
             # Duration check via ffprobe (works on any format, before ffmpeg normalisation)
             try:
-                import subprocess
                 probe = subprocess.run(
                     ["ffprobe", "-v", "error", "-show_entries", "format=duration",
                      "-of", "default=noprint_wrappers=1:nokey=1", tmp_path],
@@ -925,7 +927,7 @@ async def transcribe(
                 )
                 duration = float(probe.stdout.strip())
                 if duration > 30.0:
-                    results.append({"filename": file.filename, "error": f"Audio too long ({duration:.1f}s). Maximum is 30 seconds."})
+                    results.append({"filename": fname, "error": f"Audio too long ({duration:.1f}s). Maximum is 30 seconds."})
                     continue
             except Exception:
                 pass  # If probe fails, let transcription attempt and fail naturally
@@ -935,14 +937,14 @@ async def transcribe(
                     loop.run_in_executor(None, transcribe_audio, tmp_path),
                     timeout=TRANSCRIBE_TIMEOUT_SECONDS
                 )
-            results.append({"filename": file.filename, "transcript": transcript})
+            results.append({"filename": fname, "transcript": transcript})
 
         except asyncio.TimeoutError:
-            logger.exception(f"Transcription timeout (>{TRANSCRIBE_TIMEOUT_SECONDS}s) for {file.filename}")
-            results.append({"filename": file.filename, "error": f"Transcription timeout (max {TRANSCRIBE_TIMEOUT_SECONDS}s)"})
+            logger.exception(f"Transcription timeout (>{TRANSCRIBE_TIMEOUT_SECONDS}s) for {fname}")
+            results.append({"filename": fname, "error": f"Transcription timeout (max {TRANSCRIBE_TIMEOUT_SECONDS}s)"})
         except Exception as e:
-            logger.exception(f"Transcription failed for {file.filename}")
-            results.append({"filename": file.filename, "error": f"Transcription error: {e}"})
+            logger.exception(f"Transcription failed for {fname}")
+            results.append({"filename": fname, "error": f"Transcription error: {e}"})
         finally:
             if tmp_path and os.path.exists(tmp_path):
                 os.unlink(tmp_path)
@@ -964,7 +966,7 @@ class TranslateRequest(BaseModel):
 
 @app.post("/translate")
 async def translate(req: TranslateRequest, request: Request):
-    ip = request.client.host
+    ip = request.client.host if request.client else "unknown"
     allowed, retry_after = check_rate_limit(ip)
     if not allowed:
         raise HTTPException(
@@ -984,6 +986,8 @@ async def translate(req: TranslateRequest, request: Request):
         raise HTTPException(status_code=400, detail=f"Unknown direction: {req.direction}")
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="Empty input text.")
+    if len(req.text) > 500:
+        raise HTTPException(status_code=400, detail="Text too long (max 500 chars).")
 
     loop = asyncio.get_running_loop()
     try:
