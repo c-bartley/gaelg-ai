@@ -511,24 +511,28 @@ def normalise_audio(input_path: str) -> str:
     Returns path to the normalised temp file (caller must delete it)."""
     import subprocess
     out_tmp = tempfile.NamedTemporaryFile(suffix=".wav", delete=False)
+    out_tmp_name = out_tmp.name
     out_tmp.close()
-    result = subprocess.run(
-        [
-            "ffmpeg", "-y",
-            "-err_detect", "ignore_err",  # tolerate minor header issues
-            "-i", input_path,
-            "-ar", "16000", "-ac", "1", "-sample_fmt", "s16",
-            out_tmp.name,
-        ],
-        capture_output=True,
-        timeout=30,
-    )
-    if result.returncode != 0:
-        os.unlink(out_tmp.name)
-        # Only show the last 3 lines of stderr — the banner is not useful
-        stderr_lines = result.stderr.decode(errors="replace").strip().splitlines()
-        raise RuntimeError("ffmpeg normalisation failed: " + " | ".join(stderr_lines[-3:]))
-    return out_tmp.name
+    try:
+        result = subprocess.run(
+            [
+                "ffmpeg", "-y",
+                "-err_detect", "ignore_err",  # tolerate minor header issues
+                "-i", input_path,
+                "-ar", "16000", "-ac", "1", "-sample_fmt", "s16",
+                out_tmp_name,
+            ],
+            capture_output=True,
+            timeout=30,
+        )
+        if result.returncode != 0:
+            stderr_lines = result.stderr.decode(errors="replace").strip().splitlines()
+            raise RuntimeError("ffmpeg normalisation failed: " + " | ".join(stderr_lines[-3:]))
+        return out_tmp_name
+    except Exception:
+        if os.path.exists(out_tmp_name):
+            os.unlink(out_tmp_name)
+        raise
 
 
 def transcribe_audio(audio_path: str) -> str:
@@ -679,6 +683,16 @@ async def startup():
                 os.unlink(_tmp)
     elif os.environ.get("SKIP_TTS_WARMUP", "false").lower() == "true":
         logger.info("TTS warm-up skipped (SKIP_TTS_WARMUP=true)")
+
+    # Verify OUTPUT_DIR is writable before serving any requests
+    try:
+        _test_file = os.path.join(OUTPUT_DIR, ".write_test")
+        with open(_test_file, "w") as _f:
+            _f.write("ok")
+        os.unlink(_test_file)
+        logger.info(f"✓ Output directory writable: {OUTPUT_DIR}")
+    except Exception as e:
+        logger.error(f"✗ Output directory not writable: {OUTPUT_DIR} — {e}")
 
     # Start background cleanup task
     global _cleanup_task
@@ -896,8 +910,8 @@ async def transcribe(
         try:
             # No suffix — let ffmpeg detect format from content, not extension
             with tempfile.NamedTemporaryFile(suffix=".bin", delete=False) as tmp:
+                tmp_path = tmp.name  # Set before read so finally can clean up on disconnect
                 tmp.write(await file.read())
-                tmp_path = tmp.name
 
             # Duration check via ffprobe (works on any format, before ffmpeg normalisation)
             try:

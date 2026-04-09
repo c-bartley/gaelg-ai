@@ -49,7 +49,10 @@ def _api(method: str, params: dict = None, timeout: int = 10) -> dict:
     req = urllib.request.Request(url, data=data)
     try:
         with urllib.request.urlopen(req, timeout=timeout) as resp:
-            return json.loads(resp.read())
+            result = json.loads(resp.read())
+        if not result.get("ok"):
+            log.warning(f"Telegram API {method} returned ok=false: {result.get('description', 'unknown error')}")
+        return result
     except Exception as e:
         log.warning(f"Telegram API error ({method}): {e}")
         return {}
