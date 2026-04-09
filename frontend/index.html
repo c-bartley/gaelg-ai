@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Gaelg AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --ink:#0e0e0e;--paper:#f5f0e8;--cream:#ede7d9;--rule:#d4cbbf;
+  --accent:#1a3a2a;--accent-mid:#2e5c42;--accent-lit:#4a8c64;--accent-pale:#e8f2ec;
+  --orange-pale:#fff4ec;--orange-mid:#c45e1a;--orange-rule:#f0d0b8;
+  --purple-pale:#f2eef8;--purple-mid:#6b3fa0;--purple-rule:#d8caea;
+  --warn:#8b2020;
+  --mono:'DM Mono',monospace;--serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans',system-ui,sans-serif;
+  --r:12px;--r-sm:8px;--transition:220ms cubic-bezier(0.4,0,0.2,1);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;display:flex;flex-direction:column;}
+
+.site-header{position:sticky;top:0;z-index:100;background:rgba(245,240,232,0.93);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--rule);box-shadow:0 2px 16px rgba(0,0,0,0.06);}
+.header-inner{max-width:1100px;margin:0 auto;padding:0 2rem;height:64px;display:flex;align-items:center;justify-content:space-between;}
+.wordmark{font-family:var(--serif);font-size:1.7rem;letter-spacing:-0.02em;color:var(--accent);line-height:1;text-decoration:none;display:flex;align-items:center;gap:0.55rem;}
+.wordmark em{font-style:italic;color:var(--accent-lit);}
+.wordmark-trisk{width:30px;height:30px;color:var(--accent);flex-shrink:0;opacity:0.85;transform:scaleX(-1) rotate(5deg);}
+.lang-switch{display:flex;align-items:center;gap:0.3rem;background:var(--accent-pale);border:1px solid #b8d9c4;border-radius:28px;padding:0.25rem 0.35rem;}
+.lang-flag{background:none;border:none;cursor:pointer;padding:2px;border-radius:50%;opacity:0.42;transition:opacity var(--transition),box-shadow var(--transition);line-height:0;display:block;}
+.lang-flag:hover{opacity:0.75;}
+.lang-flag.active{opacity:1;box-shadow:0 0 0 2.5px var(--accent);}
+.lang-flag img{width:26px;height:26px;border-radius:50%;object-fit:cover;display:block;}
+
+/* Splash — home hero + collapsible nav */
+#splash{position:fixed;top:64px;left:0;right:0;height:calc(100vh - 64px);background:linear-gradient(135deg,var(--accent) 0%,#2a5c3a 60%,#3a7a52 100%);z-index:90;overflow:hidden;display:flex;flex-direction:column;transition:height 0.55s cubic-bezier(0.4,0,0.2,1);}
+#splash.collapsed{height:52px;}
+body.at-home{overflow:hidden;}
+
+#splashHero{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;transition:opacity 0.2s ease;}
+#splashHero::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(255,255,255,0.07) 0%,transparent 60%),radial-gradient(ellipse at 80% 20%,rgba(255,255,255,0.05) 0%,transparent 50%);pointer-events:none;}
+#splash.collapsed #splashHero{opacity:0;pointer-events:none;}
+.splash-inner{position:relative;text-align:center;color:#fff;max-width:700px;padding:0.75rem 2rem 0;}
+.splash-inner h1{font-family:var(--serif);font-size:clamp(2.2rem,5vw,3.2rem);line-height:1.1;margin-bottom:0.75rem;letter-spacing:-0.02em;}
+.splash-inner h1 em{font-style:italic;color:#8dd4a8;}
+.splash-inner p{font-size:1.1rem;font-weight:300;opacity:0.88;line-height:1.65;max-width:52ch;margin:0 auto 1.5rem;}
+.hero-links{display:flex;align-items:stretch;justify-content:center;gap:1rem;}
+.hero-link-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;color:#1a2a1e;background:#8dd4a8;border:none;border-radius:14px;padding:1.25em 2em;cursor:pointer;transition:background 0.18s,transform 0.12s;width:160px;}
+.hero-link-btn:hover{background:#a4debb;transform:translateY(-2px);}
+.hero-link-emoji{font-size:2rem;line-height:1;margin-bottom:0.4em;}
+.hero-link-name{font-family:var(--mono);font-size:0.82rem;letter-spacing:0.1em;text-transform:uppercase;font-weight:700;color:#1a2a1e;margin-bottom:0.3em;}
+.hero-link-sub{font-family:var(--mono);font-size:0.78rem;color:#2a4a30;opacity:0.8;white-space:nowrap;}
+.hero-links-about{display:flex;justify-content:center;margin-top:0.75rem;}
+
+#splashNav{height:52px;flex-shrink:0;display:none;align-items:center;justify-content:center;gap:0;padding:0 1.5rem;border-top:1px solid rgba(255,255,255,0.12);}
+#splash.collapsed #splashNav{display:flex;}
+.splash-tab-btn{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.68);background:none;border:none;border-bottom:4px solid transparent;height:52px;margin-bottom:-1px;padding:0 1.2em;cursor:pointer;transition:color 0.18s,border-color 0.18s;display:inline-flex;align-items:center;gap:0.4em;white-space:nowrap;}
+.splash-tab-btn:hover{color:#fff;}
+.splash-tab-btn.active{color:#fff;border-bottom-color:var(--orange-mid);}
+#splashHomeBtn{opacity:0;pointer-events:none;transition:opacity 0.25s;border-right:1px solid rgba(255,255,255,0.18);padding-right:1.2em;margin-right:0.4em;}
+#splash.collapsed #splashHomeBtn{opacity:1;pointer-events:auto;}
+
+/* Flanking triskelions — sticky, vertically centred in visible cream area */
+.content-bg-wrap{background-image:url('/static/purt_charn.png');background-size:cover;background-position:center center;background-attachment:fixed;margin-top:52px;flex:1;}
+.content-wrap{display:flex;align-items:flex-start;max-width:1300px;margin:0 auto;width:100%;padding:3rem 1rem 6rem;}
+.flank{width:100px;flex-shrink:0;display:flex;justify-content:center;}
+.flank-inner{
+  position:sticky;
+  /* 64px header + 44px tab nav = 108px. Centre of remaining viewport = 50vh - 54px. Minus half triskelion (40px) = 50vh - 94px */
+  top:calc(50vh - 94px);
+}
+.flank-trisk{width:80px;height:80px;color:var(--accent);opacity:0.13;transition:opacity 0.3s ease;transform:scaleX(-1) rotate(5deg);}
+.flank-trisk.spinning{animation:spinFull 0.65s linear infinite;opacity:0.45;}
+.page-body{flex:1;min-width:0;max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:2rem;}
+
+.tab-panel{display:none;flex-direction:column;gap:2rem;}
+.tab-panel.active{display:flex;animation:fadeUp 0.3s ease both;}
+.section-intro{background:rgba(245,240,232,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(212,203,191,0.5);border-radius:var(--r);padding:1.25rem 1.5rem;}
+.section-intro h2{font-family:var(--serif);font-size:1.8rem;color:var(--accent);margin-bottom:0.4rem;}
+.section-intro p{font-size:0.95rem;font-weight:300;color:#6b5f52;line-height:1.6;}
+
+.card{background:#fff;border:1.5px solid var(--rule);border-radius:var(--r);padding:2rem 2rem 1.75rem;box-shadow:0 2px 16px rgba(0,0,0,0.05);transition:box-shadow var(--transition);}
+.card:hover{box-shadow:0 6px 28px rgba(0,0,0,0.09);}
+.card-speak{background:linear-gradient(135deg,var(--orange-pale) 0%,#fff 60%);border-color:var(--orange-rule);}
+.card-listen{background:linear-gradient(135deg,var(--orange-pale) 0%,#fff 60%);border-color:var(--orange-rule);}
+.card-translate{background:linear-gradient(135deg,var(--orange-pale) 0%,#fff 60%);border-color:var(--orange-rule);}
+.card-label{font-family:var(--mono);font-size:0.63rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--orange-mid);margin-bottom:0.9rem;display:flex;align-items:center;gap:0.5rem;}
+.card-label::after{content:'';flex:1;height:1px;background:var(--orange-rule);}
+.card-listen .card-label{color:var(--orange-mid);}.card-listen .card-label::after{background:var(--orange-rule);}
+.card-translate .card-label{color:var(--orange-mid);}.card-translate .card-label::after{background:var(--orange-rule);}
+
+textarea{width:100%;min-height:130px;resize:vertical;font-family:var(--sans);font-size:1rem;font-weight:300;line-height:1.65;color:var(--ink);background:rgba(255,244,236,0.5);border:1.5px solid var(--orange-rule);border-radius:var(--r-sm);padding:0.875rem 1rem;outline:none;transition:border-color var(--transition),box-shadow var(--transition);}
+textarea:focus{border-color:var(--orange-mid);box-shadow:0 0 0 3px rgba(196,94,26,0.1);}
+textarea::placeholder{color:#b0a090;}
+.char-count{font-family:var(--mono);font-size:0.67rem;color:#b0a090;text-align:right;margin-top:0.4rem;}
+.char-count.warn{color:var(--warn);}
+.gender-toggle{display:flex;gap:0;margin-bottom:0.75rem;border:1.5px solid var(--orange-rule);border-radius:var(--r-sm);overflow:hidden;width:100%;}
+.gender-btn{font-family:var(--mono);font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;background:#fff;color:var(--orange-mid);border:none;padding:0.45em 1.25em;cursor:pointer;transition:background 0.15s,color 0.15s;flex:1;}
+.gender-btn:not(:last-child){border-right:1.5px solid var(--orange-rule);}
+.gender-btn.active{background:var(--orange-mid);color:#fff;}
+.gender-btn:not(.active):hover{background:var(--orange-pale);}
+.btn-row{display:flex;justify-content:flex-end;margin-top:1.25rem;gap:0.75rem;align-items:center;}
+
+.upload-zone{border:2px dashed var(--orange-rule);border-radius:var(--r-sm);padding:2.5rem 1.5rem;text-align:center;background:rgba(255,244,236,0.4);cursor:pointer;transition:border-color var(--transition),background var(--transition);}
+.upload-zone:hover{border-color:var(--orange-mid);background:rgba(255,244,236,0.7);}
+.upload-zone .uz-icon{font-size:2rem;margin-bottom:0.6rem;}
+.upload-zone p{font-size:0.9rem;font-weight:300;color:#8a6040;}
+.upload-zone span{font-family:var(--mono);font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--orange-mid);}
+
+.lang-row{display:flex;align-items:center;gap:0.75rem;margin-bottom:1rem;}
+.lang-sel{font-family:var(--mono);font-size:0.72rem;color:var(--accent);background:#fff;border:1.5px solid var(--rule);border-radius:var(--r-sm);padding:0.45em 0.75em;cursor:pointer;outline:none;}
+.lang-swap{font-size:0.9rem;color:var(--orange-mid);background:none;border:none;cursor:pointer;padding:0.2em 0.4em;border-radius:4px;transition:background var(--transition);}
+.lang-swap:hover{background:var(--orange-pale);}
+.translate-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;}
+.translate-output{background:rgba(255,244,236,0.5);border:1.5px solid var(--orange-rule);border-radius:var(--r-sm);padding:0.875rem 1rem;min-height:130px;font-size:1rem;font-weight:300;line-height:1.65;color:#9a7a60;font-style:italic;}
+
+button.action-btn{font-family:var(--mono);font-size:0.76rem;letter-spacing:0.08em;text-transform:uppercase;color:#fff;border:none;border-radius:20px;padding:0.75em 2em;cursor:pointer;transition:background var(--transition),transform var(--transition),box-shadow var(--transition);display:inline-flex;align-items:center;gap:0.5em;}
+button.action-btn:hover{transform:translateY(-1px);}
+button.action-btn:active{transform:translateY(0);}
+button.action-btn:disabled{opacity:0.55;cursor:not-allowed;transform:none;}
+button.action-btn .spinner{display:none;width:13px;height:13px;border:2px solid rgba(255,255,255,0.4);border-top-color:#fff;border-radius:50%;animation:spin 0.7s linear infinite;}
+button.action-btn.loading .spinner{display:inline-block;}
+button.action-btn.loading .btn-label::before{content:attr(data-loading)!important;}
+button.action-btn:not(.loading) .btn-label::before{content:attr(data-label)!important;}
+.btn-green{background:var(--accent);box-shadow:0 2px 10px rgba(26,58,42,0.3);}.btn-green:hover{background:var(--accent-mid);}
+.btn-orange{background:var(--orange-mid);box-shadow:0 2px 10px rgba(196,94,26,0.3);}.btn-orange:hover{background:#a04a10;}
+.btn-purple{background:var(--purple-mid);box-shadow:0 2px 10px rgba(107,63,160,0.3);}.btn-purple:hover{background:#5a2e8a;}
+.lang-display{font-family:var(--mono);font-size:0.72rem;color:var(--accent);background:#fff;border:1.5px solid var(--rule);border-radius:var(--r-sm);padding:0.45em 0.75em;flex:1;text-align:center;display:flex;align-items:center;justify-content:center;}
+.lang-swap{background:#fff;border:1.5px solid var(--rule);border-radius:var(--r-sm);padding:0.45em 0.75em;cursor:pointer;font-size:1rem;line-height:1;color:var(--accent);}
+#translateMicBtn.recording{background:#c0392b!important;border-color:#c0392b!important;color:#fff!important;}
+
+.result-card{background:#fff;border:1.5px solid var(--rule);border-radius:var(--r);padding:1.75rem 2rem;box-shadow:0 2px 16px rgba(0,0,0,0.05);display:none;animation:fadeUp 0.35s ease both;}
+.result-card.visible{display:block;}
+.result-card.error{border-color:#d4a0a0;background:#fff5f5;}
+.error-msg{font-size:0.9rem;color:var(--warn);display:flex;align-items:center;gap:0.5em;}
+.coming-soon-note{text-align:center;padding:1.5rem 1rem;}
+.coming-soon-note .cs-label{font-family:var(--mono);font-size:0.63rem;letter-spacing:0.18em;text-transform:uppercase;color:#a09585;margin-bottom:0.5rem;}
+.coming-soon-note p{font-size:0.9rem;font-weight:300;color:#8a7a6a;}
+
+.waveform-wrap{margin:1rem 0;background:var(--orange-pale);border:1px solid var(--orange-rule);border-radius:var(--r-sm);padding:0.75rem 1rem;display:flex;align-items:center;gap:1rem;}
+.wave-bars{display:flex;align-items:center;gap:3px;height:36px;flex:1;}
+.wave-bars span{display:block;width:3px;background:var(--orange-mid);border-radius:2px;opacity:0.55;}
+.wave-bars.playing span{animation:wavePulse 0.8s ease-in-out infinite alternate;}
+.wave-bars span:nth-child(1){animation-delay:0.0s}.wave-bars span:nth-child(2){animation-delay:0.07s}.wave-bars span:nth-child(3){animation-delay:0.14s}.wave-bars span:nth-child(4){animation-delay:0.21s}.wave-bars span:nth-child(5){animation-delay:0.28s}.wave-bars span:nth-child(6){animation-delay:0.21s}.wave-bars span:nth-child(7){animation-delay:0.14s}.wave-bars span:nth-child(8){animation-delay:0.07s}.wave-bars span:nth-child(9){animation-delay:0.0s}.wave-bars span:nth-child(10){animation-delay:0.07s}.wave-bars span:nth-child(11){animation-delay:0.14s}.wave-bars span:nth-child(12){animation-delay:0.21s}
+audio{width:100%;accent-color:var(--accent);margin-top:0.75rem;}
+.audio-actions{display:flex;align-items:center;justify-content:space-between;margin-top:1rem;flex-wrap:wrap;gap:0.75rem;}
+.audio-meta{font-family:var(--mono);font-size:0.67rem;color:#a09585;}
+a.dl-btn{font-family:var(--mono);font-size:0.67rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--orange-mid);border:1.5px solid var(--orange-mid);border-radius:20px;padding:0.4em 1.1em;text-decoration:none;transition:background var(--transition),color var(--transition);}
+a.dl-btn:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+.history-section{background:rgba(245,240,232,0.88);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border:1px solid rgba(212,203,191,0.5);border-radius:var(--r);padding:1.25rem 1.5rem;}
+.history-section h2{font-family:var(--mono);font-size:0.63rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--accent-mid);margin-bottom:0.9rem;display:flex;align-items:center;gap:0.5rem;}
+.history-section h2::after{content:'';flex:1;height:1px;background:var(--rule);}
+.history-list{list-style:none;display:flex;flex-direction:column;gap:0.5rem;}
+.history-item{display:flex;align-items:center;gap:1rem;background:#fff;border:1px solid var(--rule);border-radius:var(--r-sm);padding:0.75rem 1rem;font-size:0.875rem;}
+.history-item .hi-text{flex:1;font-weight:300;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.history-item button.play-prev{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.08em;text-transform:uppercase;background:none;border:1px solid var(--rule);border-radius:20px;color:var(--accent-mid);padding:0.3em 0.8em;cursor:pointer;flex-shrink:0;transition:background var(--transition),color var(--transition);}
+.history-item button.play-prev:hover{background:var(--accent);color:#fff;border-color:var(--accent);}
+
+.about-profile{display:grid;grid-template-columns:210px 1fr;gap:2.5rem;background:linear-gradient(135deg,var(--orange-pale) 0%,#fff 60%);border:1.5px solid var(--orange-rule);border-radius:var(--r);padding:2.5rem;box-shadow:0 2px 16px rgba(0,0,0,0.05);align-items:start;}
+.about-photo{width:210px;height:210px;border-radius:var(--r);border:2px solid var(--orange-rule);overflow:hidden;flex-shrink:0;}
+.about-photo img{width:100%;height:100%;object-fit:cover;display:block;}
+.about-body{display:flex;flex-direction:column;gap:1.25rem;}
+.about-greeting{font-family:var(--serif);font-size:1.9rem;color:var(--accent);line-height:1.1;}
+.about-bio{font-size:0.97rem;font-weight:300;line-height:1.85;color:#3a3028;}
+.about-contact-section{display:flex;flex-direction:column;gap:0.5rem;padding-top:1rem;border-top:1px solid var(--orange-rule);}
+.contact-label{font-family:var(--mono);font-size:0.6rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--orange-mid);margin-bottom:0.2rem;}
+.contact-pills{display:flex;flex-wrap:wrap;gap:0.6rem;}
+.contact-pill{display:inline-flex;align-items:center;gap:0.4em;font-family:var(--mono);font-size:0.69rem;color:var(--orange-mid);background:#fff;border:1.5px solid var(--orange-rule);border-radius:20px;padding:0.4em 1em;text-decoration:none;transition:background var(--transition),color var(--transition),border-color var(--transition);}
+.contact-pill:hover{background:var(--orange-mid);color:#fff;border-color:var(--orange-mid);}
+.about-project{background:linear-gradient(135deg,var(--orange-pale) 0%,#fff 60%);border:1.5px solid var(--orange-rule);border-radius:var(--r);padding:2rem;box-shadow:0 2px 16px rgba(0,0,0,0.05);}
+.about-project h3{font-family:var(--mono);font-size:0.63rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--orange-mid);margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;}
+.about-project h3::after{content:'';flex:1;height:1px;background:var(--rule);}
+.about-project p{font-size:0.97rem;font-weight:300;line-height:1.8;color:#3a3028;}
+
+footer{background:var(--accent);color:rgba(255,255,255,0.65);text-align:center;padding:2rem;font-family:var(--mono);font-size:0.62rem;letter-spacing:0.08em;}
+footer strong{color:#fff;}
+
+#removeFileBtn:hover{color:var(--warn)!important;border-color:var(--warn)!important;}
+button.action-btn.recording{background:var(--warn)!important;box-shadow:0 2px 10px rgba(139,32,32,0.4)!important;animation:recPulse 1.2s ease-in-out infinite;}
+@keyframes recPulse{0%,100%{opacity:1}50%{opacity:0.7}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes spinFull{from{transform:scaleX(-1) rotate(5deg)}to{transform:scaleX(-1) rotate(365deg)}}
+@keyframes wavePulse{from{transform:scaleY(0.3);opacity:0.4}to{transform:scaleY(1);opacity:1}}
+
+@media(max-width:900px){.flank{display:none;}.content-wrap{padding:2rem 1.25rem 4rem;}}
+@media(max-width:640px){
+  .about-profile{grid-template-columns:1fr;}
+  .about-photo{width:150px;height:150px;}
+  .splash-tab-btn{padding:0 0.7em;font-size:0.63rem;}
+  .translate-grid{grid-template-columns:1fr;}
+  .card{padding:1.5rem 1.25rem;}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="header-inner">
+    <a class="wordmark" href="#">
+      <span class="wordmark-trisk"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <g transform="translate(50,50)" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(0)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(120)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(240)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <circle cx="0" cy="0" r="5" fill="currentColor" stroke="none"/>
+  </g>
+</svg></span>
+      Gaelg <em>AI</em>
+    </a>
+    <div class="lang-switch" role="group" aria-label="Language">
+      <button class="lang-flag active" data-lang="en" title="English" onclick="setLang('en')"><img src="/static/UK.png" alt="English"></button>
+      <button class="lang-flag" data-lang="gv" title="Gaelg (coming soon)" disabled style="opacity:0.25;cursor:not-allowed;"><img src="/static/IOM.png" alt="Gaelg"></button>
+    </div>
+  </div>
+</header>
+
+<div id="splash">
+  <div id="splashHero">
+    <div class="splash-inner">
+      <h1 data-i18n="hero.h1">AI tools for the<br><em>Manx language</em></h1>
+      <p data-i18n="hero.p">Speech synthesis, recognition, and translation — built to help preserve and promote Gaelg in the digital age.</p>
+      <div class="hero-links">
+        <button class="hero-link-btn" onclick="selectSplashTab('speak')">
+          <span class="hero-link-emoji">🗣</span>
+          <span class="hero-link-name">Speak</span>
+          <span class="hero-link-sub">Text &rarr; Speech</span>
+        </button>
+        <button class="hero-link-btn" onclick="selectSplashTab('listen')">
+          <span class="hero-link-emoji">👂</span>
+          <span class="hero-link-name">Listen</span>
+          <span class="hero-link-sub">Speech &rarr; Text</span>
+        </button>
+        <button class="hero-link-btn" onclick="selectSplashTab('translate')">
+          <span class="hero-link-emoji">🔄</span>
+          <span class="hero-link-name">Translate</span>
+          <span class="hero-link-sub">Manx &harr; English</span>
+        </button>
+      </div>
+      <div class="hero-links-about">
+        <button class="hero-link-btn" onclick="selectSplashTab('about')">
+          <span class="hero-link-emoji">👤</span>
+          <span class="hero-link-name">About</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="splashNav">
+    <button id="splashHomeBtn" class="splash-tab-btn" data-i18n="tab.home" onclick="goHome()">⌂ Home</button>
+    <button class="splash-tab-btn active" data-tab="speak" data-i18n="tab.speak" onclick="selectSplashTab('speak')">🗣 Speak</button>
+    <button class="splash-tab-btn" data-tab="listen" data-i18n="tab.listen" onclick="selectSplashTab('listen')">👂 Listen</button>
+    <button class="splash-tab-btn" data-tab="translate" data-i18n="tab.translate" onclick="selectSplashTab('translate')">🔄 Translate</button>
+    <button class="splash-tab-btn" data-tab="about" data-i18n="tab.about" onclick="selectSplashTab('about')">👤 About</button>
+  </div>
+</div>
+
+<div class="content-bg-wrap">
+<div class="content-wrap">
+  <div class="flank"><div class="flank-inner"><div class="flank-trisk" id="triskLeft"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <g transform="translate(50,50)" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(0)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(120)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(240)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <circle cx="0" cy="0" r="5" fill="currentColor" stroke="none"/>
+  </g>
+</svg></div></div></div>
+
+  <main class="page-body">
+
+    <div class="tab-panel active" id="tab-speak">
+      <div class="section-intro"><h2 data-i18n="sec.speak.h2">Text to Speech</h2><p data-i18n="sec.speak.p">Type or paste Manx text and listen to it spoken aloud.</p></div>
+      <div class="card card-speak">
+        <div class="card-label" data-i18n="card.speak">Enter Manx text</div>
+        <div class="gender-toggle">
+          <button class="gender-btn active" id="genderFemale" data-gender="female">Female</button>
+          <button class="gender-btn" id="genderMale" data-gender="male">Male</button>
+        </div>
+        <textarea id="textInput" data-i18n-placeholder="placeholder.speak" placeholder="Enter Manx text to synthesise…" maxlength="500" spellcheck="true" autocomplete="off"></textarea>
+        <div class="char-count" id="charCount">0 / 500</div>
+        <div class="btn-row">
+          <button class="action-btn btn-orange" id="synthBtn" type="button">
+            <span class="spinner"></span>
+            <span class="btn-label" data-i18n-label="btn.synth" data-i18n-loading="btn.synth.loading" data-label="Synthesise" data-loading="Synthesising…"></span>
+          </button>
+        </div>
+      </div>
+      <div class="result-card" id="resultCard"><div class="card-label" id="resultLabel">Output</div><div id="resultBody"></div></div>
+      <section class="history-section" id="historySection" style="display:none"><h2 data-i18n="history.h2">Recent</h2><ul class="history-list" id="historyList"></ul></section>
+    </div>
+
+    <div class="tab-panel" id="tab-listen">
+      <div class="section-intro"><h2 data-i18n="sec.listen.h2">Automatic Speech Recognition</h2><p data-i18n="sec.listen.p">Upload a Manx audio file or record directly, then transcribe. Due to compute constraints, clips must be <strong>30 seconds or under</strong>. For longer files or projects, <a href="#" onclick="switchTab('about');return false;" style="color:var(--orange-mid);text-decoration:underline;text-underline-offset:2px;">please get in touch</a>.</p></div>
+
+      <div class="card card-listen" style="display:flex;flex-direction:column;gap:1rem;">
+
+        <!-- Idle state: upload (left) + record (right) -->
+        <div id="uzPrompt" style="display:flex;min-height:190px;border:2px dashed var(--orange-rule);border-radius:var(--r-sm);overflow:hidden;background:rgba(255,244,236,0.4);">
+          <div id="uploadZone" style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.5rem;padding:1.5rem;text-align:center;cursor:pointer;transition:background var(--transition);">
+            <input type="file" id="audioFile" accept="audio/*" style="display:none"/>
+            <div style="font-size:2rem;line-height:1;">📂</div>
+            <div class="card-label" style="margin-bottom:0;" data-i18n="card.upload">Upload a file</div>
+            <p style="font-size:0.85rem;font-weight:300;color:#8a6040;margin:0;">Drag &amp; drop here</p>
+            <span style="font-family:var(--mono);font-size:0.65rem;letter-spacing:0.08em;text-transform:uppercase;color:var(--orange-mid);">or click to browse</span>
+          </div>
+          <div style="width:1px;background:var(--orange-rule);flex-shrink:0;margin:1rem 0;"></div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.75rem;padding:1.5rem;text-align:center;">
+            <div style="font-size:2rem;line-height:1;">🎙</div>
+            <div class="card-label" style="margin-bottom:0;" data-i18n="card.record">Record audio</div>
+            <button class="action-btn btn-orange" id="recordBtn" type="button">
+              <span class="spinner"></span>
+              <span class="btn-label" data-i18n-label="btn.record" data-i18n-loading="btn.record.loading" data-label="⏺  Start recording" data-loading="⏹  Stop recording"></span>
+            </button>
+            <span id="recordStatus" style="font-family:var(--mono);font-size:0.67rem;color:#a09585;min-height:1.2em;"></span>
+          </div>
+        </div>
+
+        <!-- Selected state: full-width file view -->
+        <div id="uzSelected" style="display:none;min-height:190px;border:2px dashed var(--orange-rule);border-radius:var(--r-sm);background:rgba(255,244,236,0.4);flex-direction:column;align-items:center;justify-content:center;gap:0.75rem;padding:1.5rem;">
+          <svg width="52" height="40" viewBox="0 0 52 40" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:block;">
+            <rect x="0"  y="16" width="5" height="8"  rx="2.5" fill="var(--orange-mid)" opacity="0.5"/>
+            <rect x="8"  y="10" width="5" height="20" rx="2.5" fill="var(--orange-mid)" opacity="0.7"/>
+            <rect x="16" y="4"  width="5" height="32" rx="2.5" fill="var(--orange-mid)"/>
+            <rect x="24" y="8"  width="5" height="24" rx="2.5" fill="var(--orange-mid)" opacity="0.85"/>
+            <rect x="32" y="13" width="5" height="14" rx="2.5" fill="var(--orange-mid)" opacity="0.7"/>
+            <rect x="40" y="6"  width="5" height="28" rx="2.5" fill="var(--orange-mid)" opacity="0.6"/>
+            <rect x="47" y="18" width="5" height="6"  rx="2.5" fill="var(--orange-mid)" opacity="0.4"/>
+          </svg>
+          <div id="selectedFileName" style="font-family:var(--mono);font-size:0.72rem;color:var(--orange-mid);font-weight:500;word-break:break-all;text-align:center;max-width:100%;"></div>
+          <button id="clearFileBtn" type="button" style="background:none;border:1px solid var(--orange-rule);border-radius:6px;color:#a09585;font-family:var(--mono);font-size:0.67rem;padding:0.25rem 0.6rem;cursor:pointer;transition:color 0.2s ease,border-color 0.2s ease;" onmouseover="this.style.color='var(--warn)';this.style.borderColor='var(--warn)';" onmouseout="this.style.color='#a09585';this.style.borderColor='var(--orange-rule)';">✕ Clear</button>
+        </div>
+
+        <div class="btn-row" style="margin-top:0">
+          <button class="action-btn btn-orange" id="transcribeBtn" type="button">
+            <span class="spinner"></span>
+            <span class="btn-label" data-i18n-label="btn.transcribe" data-i18n-loading="btn.transcribe.loading" data-label="Transcribe" data-loading="Transcribing…"></span>
+          </button>
+        </div>
+
+      </div>
+
+      <div class="result-card" id="transcribeResult"><div class="card-label" data-i18n="lbl.transcription">Transcription</div><div id="transcribeBody"></div></div>
+    </div>
+
+    <div class="tab-panel" id="tab-translate">
+      <div class="section-intro"><h2 data-i18n="sec.translate.h2">Translation</h2><p data-i18n="sec.translate.p">Translate between Manx Gaelic and English.</p></div>
+      <div class="card card-translate">
+                <div class="lang-row">
+          <select id="srcLang" style="display:none"><option value="gv">Gaelg (Manx)</option><option value="en">English</option></select>
+          <span class="lang-display" id="srcDisplay">Manx</span>
+          <button class="lang-swap" id="langSwap">⇄</button>
+          <select id="tgtLang" style="display:none"><option value="en">English</option><option value="gv">Gaelg (Manx)</option></select>
+          <span class="lang-display" id="tgtDisplay">English</span>
+        </div>
+        <div class="translate-grid">
+          <div><div class="card-label" data-i18n="card.source">Source text</div><div style="position:relative;"><textarea id="translateInput" data-i18n-placeholder="placeholder.translate" placeholder="Enter text to translate…" maxlength="500" style="min-height:130px;background:rgba(255,244,236,0.5);border-color:var(--orange-rule);padding-bottom:2.5rem;resize:none;"></textarea><button id="translateMicBtn" title="Record Manx speech" style="display:block;position:absolute;bottom:0.75rem;right:0.5rem;background:var(--orange-pale);border:1.5px solid var(--orange-rule);border-radius:6px;cursor:pointer;color:var(--orange-mid);padding:0.3em 0.4em;line-height:0;transition:background 0.18s,color 0.18s,border-color 0.18s;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zM17.91 11c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg></button></div></div>
+          <div><div class="card-label" data-i18n="card.translation">Translation</div><div style="position:relative;"><div class="translate-output" data-i18n="output.translate" id="translateOutput">Translation will appear here…</div><button id="translateSpeakBtn" title="Speak translation" style="display:none;position:absolute;bottom:0.5rem;right:0.5rem;background:var(--orange-pale);border:1.5px solid var(--orange-rule);border-radius:6px;cursor:pointer;color:var(--orange-mid);padding:0.3em 0.4em;line-height:0;transition:background 0.18s,color 0.18s,border-color 0.18s;"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z"/></svg></button></div></div>
+        </div>
+        <div class="btn-row">
+          <button class="action-btn btn-orange" id="translateBtn" type="button">
+            <span class="spinner"></span>
+            <span class="btn-label" data-i18n-label="btn.translate" data-i18n-loading="btn.translate.loading" data-label="Translate" data-loading="Translating…"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-about">
+      <div class="section-intro"><h2 data-i18n="sec.about.h2">About</h2></div>
+      <div class="about-project">
+        <h3>About This Project</h3>
+        <p>Gaelg AI is a collection of AI-powered tools for Manx Gaelic, developed as part of ongoing doctoral research into low-resource and endangered language speech technology at the University of Sheffield. The tools include a text-to-speech synthesiser, automatic speech recognition, and translation tools, all of which have been trained on Manx language resources.</p>
+      </div>
+      <div class="about-project">
+        <h3>Usage</h3>
+        <ul style="font-size:0.97rem;font-weight:300;line-height:1.8;color:#3a3028;padding-left:1.25rem;margin:0;display:flex;flex-direction:column;gap:0.5rem;">
+          <li>Audio clips must be <strong>30 seconds or under</strong> and text input is limited to <strong>500 characters</strong>. For longer files, larger projects, or other enquiries, please <a href="#" onclick="selectSplashTab('about');return false;" style="color:var(--orange-mid);text-decoration:underline;text-underline-offset:2px;">get in touch</a>.</li>
+          <li>These tools are experimental — output may contain errors and should be treated as approximate rather than authoritative.</li>
+          <li>Data submitted to this platform is processed only to provide the requested service and is not retained. For full details, see the <a href="/privacy.html" style="color:var(--orange-mid);text-decoration:underline;text-underline-offset:2px;">Privacy Policy</a>.</li>
+        </ul>
+      </div>
+      <div class="about-profile">
+        <div style="grid-column:1/-1;margin-bottom:0.5rem;"><h3 style="font-family:var(--mono);font-size:0.63rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--orange-mid);display:flex;align-items:center;gap:0.5rem;">About Me<span style="flex:1;height:1px;background:var(--rule);display:block;margin-left:0.5rem;"></span></h3></div>
+        <div class="about-photo"><img src="data:image/jpeg;base64,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" alt="Chris Bartley"/></div>
+        <div class="about-body">
+          <div class="about-greeting">Moghrey mie whooinney!</div>
+          <p class="about-bio">I'm Chris, a language enthusiast born and raised in sunny Douglas, Isle of Man. I'm currently doing a PhD in Computer Science at the University of Sheffield. My research is all about making speech and language technologies accessible to endangered language communities, and Manx (Gaelg) is top of the list fella! I've created this platform to showcase some of the technologies I've developed. I hope you find them useful. If you'd like to contribute in any way please get in touch.</p>
+          <div class="about-contact-section">
+            <div class="contact-label">Find me online</div>
+            <div class="contact-pills">
+              <a href="mailto:csjbartley1@sheffield.ac.uk" class="contact-pill">✉ Email</a>
+              <a href="https://www.linkedin.com/in/chris-bartley-895b811ab/" target="_blank" class="contact-pill">💼 LinkedIn</a>
+              <a href="https://orcid.org/0009-0007-2882-6268" target="_blank" class="contact-pill">🔬 ORCID</a>
+              <a href="https://github.com/c-bartley" target="_blank" class="contact-pill">⌨ GitHub</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <div class="flank"><div class="flank-inner"><div class="flank-trisk" id="triskRight"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100%" height="100%">
+  <g transform="translate(50,50)" stroke="currentColor" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="rotate(0)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(120)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <g transform="rotate(240)">
+      <line x1="0" y1="2" x2="2" y2="-28" stroke-width="10"/>
+      <line x1="2" y1="-28" x2="24" y2="-14" stroke-width="8"/>
+      <line x1="24" y1="-14" x2="32" y2="-22" stroke-width="6"/>
+    </g>
+    <circle cx="0" cy="0" r="5" fill="currentColor" stroke="none"/>
+  </g>
+</svg></div></div></div>
+</div>
+</div>
+
+<footer><strong>Gaelg AI</strong> &nbsp;&middot;&nbsp; University of Sheffield &nbsp;&middot;&nbsp; Built with &hearts; for the Manx language &nbsp;&middot;&nbsp; <a href="/privacy.html" style="color:rgba(255,255,255,0.65);text-decoration:underline;text-underline-offset:2px;transition:color 0.18s;" onmouseover="this.style.color='#fff'" onmouseout="this.style.color='rgba(255,255,255,0.65)'">Privacy Policy</a></footer>
+<audio id="hiddenAudio" style="display:none"></audio>
+
+<script>
+const API_BASE='', MAX_CHARS=500;
+
+// ── i18n ──────────────────────────────────────────────────────────────
+let currentLang = 'en';
+
+const T = {
+  en: {
+    'hero.h1':            'AI tools for the<br><em>Manx language</em>',
+    'hero.p':             'Speech synthesis, recognition, and translation — built to help preserve and promote Gaelg in the digital age.',
+    'tab.home':           '⌂ Home',
+    'tab.speak':          '🗣 Speak',
+    'tab.listen':         '👂 Listen',
+    'tab.translate':      '🔄 Translate',
+    'tab.about':          '👤 About',
+    'sec.speak.h2':       'Text to Speech',
+    'sec.speak.p':        'Type or paste Manx text and listen to it spoken aloud.',
+    'sec.listen.h2':      'Automatic Speech Recognition',
+    'sec.listen.p':       'Upload a Manx audio file or record directly, then transcribe.</a>.',
+    'sec.translate.h2':   'Translation',
+    'sec.translate.p':    'Type or paste Manx or English text and translate.',
+    'sec.about.h2':       'About',
+    'card.speak':         'Enter Manx text',
+    'placeholder.speak':  "Enter Manx text to synthesise\u2026",
+    'btn.synth':          'Synthesise',
+    'btn.synth.loading':  'Synthesising\u2026',
+    'history.h2':         'Recent',
+    'card.upload':        'Upload a file',
+    'btn.transcribe':     'Transcribe',
+    'btn.transcribe.loading': 'Transcribing\u2026',
+    'card.record':        'Record audio',
+    'card.record.desc':   'Click to start recording from your microphone',
+    'btn.record':         '\u23fa  Start recording',
+    'btn.record.loading': '\u23f9  Stop recording',
+    'lbl.transcription':  'Transcription',
+    'card.source':        'Source text',
+    'card.translation':   'Translation',
+    'placeholder.translate': 'Enter text to translate\u2026',
+    'output.translate':   'Translation will appear here\u2026',
+    'btn.translate':      'Translate',
+    'btn.translate.loading': 'Translating\u2026',
+    'footer':             '<strong>Gaelg AI</strong> &nbsp;&middot;&nbsp; University of Sheffield &nbsp;&middot;&nbsp; Built with &hearts; for the Manx language &nbsp;&middot;&nbsp; <a href="/privacy.html" style="color:rgba(255,255,255,0.65);text-decoration:underline;text-underline-offset:2px;">Privacy Policy</a>',
+    'js.lbl.output':      'Output',
+    'js.lbl.error':       'Error',
+    'js.download':        '\u2193 Download WAV',
+    'js.play':            '\u25b6 Play',
+    'js.err.empty':       'Please enter some text first.',
+    'js.err.transcribe':  'Transcription failed.',
+    'js.err.translate':   'Translation failed.',
+    'js.err.samelang':    'Source and target language are the same.',
+    'js.rec.counting':    'Recording\u2026',
+    'js.rec.done':        'Recording complete.',
+    'js.rec.nomic':       'Could not access microphone: ',
+  },
+  gv: {
+    'hero.h1':            'Greienyn AI son<br><em>Gaelg</em>',
+    'hero.p':             'Jannoo coraa, aithnys coraa, as çhyndaa — troggit dy choadey as y Ghaelg y niartaghey.',
+    'tab.home':           '⌂ Thie',
+    'tab.speak':          '🗣 Loayrt',
+    'tab.listen':         '👂 Clashtyn',
+    'tab.translate':      '🔄 Çhyndaa',
+    'tab.about':          '👤 Mychione',
+    'sec.speak.h2':       'Screeu gys Coraa',
+    'sec.speak.p':        'Cur stiagh screeuyn Gaelgagh as eaisht roo.',
+    'sec.listen.h2':      'Aithnys Coraa',
+    'sec.listen.p':       'Ard-laad faiyl kiaull ny record dy jeeragh, eisht screeu. Kyndagh rish lhimiteyryn çhiassaghey, cha vod clip ve ny s\'liurey na <strong>30 fillagyn</strong>. Son clareenyn ny projects ny s\'liurey, <a href="#" onclick="switchTab(\'about\');return false;" style="color:var(--orange-mid);text-decoration:underline;text-underline-offset:2px;">cur fys orrin</a>.',
+    'sec.translate.h2':   'Çhyndaa',
+    'sec.translate.p':    'Çhyndaa eddyr Gaelg as Baarle.',
+    'sec.about.h2':       'Mychione',
+    'card.speak':         'Cur stiagh screeuyn Gaelgagh',
+    'placeholder.speak':  "Enter Manx text to synthesise\u2026",
+    'btn.synth':          'Jannoo Coraa',
+    'btn.synth.loading':  'Jannoo Coraa\u2026',
+    'history.h2':         'Anmagh',
+    'card.upload':        'Ard-laad faiyl',
+    'btn.transcribe':     'Screeu',
+    'btn.transcribe.loading': 'Screeu\u2026',
+    'card.record':        'Record coraa',
+    'card.record.desc':   'Brish dy ghoaill recortys veih dty vicrophone',
+    'btn.record':         '\u23fa  Toshiaghey recortys',
+    'btn.record.loading': '\u23f9  Scuirr recortys',
+    'lbl.transcription':  'Screeudeyrys',
+    'card.source':        'Testyr bun',
+    'card.translation':   'Çhyndaa',
+    'placeholder.translate': 'Cur stiagh testyr dy çhyndaa\u2026',
+    'output.translate':   "Bee'n çhyndaa ry-akin ayns shoh\u2026",
+    'btn.translate':      'Çhyndaa',
+    'btn.translate.loading': 'Çhyndaa\u2026',
+    'footer':             '<strong>Gaelg AI</strong> &nbsp;&middot;&nbsp; Ollooscoill Sheffield &nbsp;&middot;&nbsp; Troggit lesh &hearts; son Gaelg &nbsp;&middot;&nbsp; <a href="/privacy.html" style="color:rgba(255,255,255,0.65);text-decoration:underline;text-underline-offset:2px;">Privacy Policy</a>',
+    'js.lbl.output':      'Cooish',
+    'js.lbl.error':       'Marraneys',
+    'js.download':        '\u2193 Nollick WAV',
+    'js.play':            '\u25b6 Cloie',
+    'js.err.empty':       'Cur stiagh texte hoshiaght.',
+    'js.err.transcribe':  'Cha dod eh screeu.',
+    'js.err.translate':   'Cha dod eh çhyndaa.',
+    'js.err.samelang':    'Ta\'n çhengey bun as yn çhengey kione yn un cheray.',
+    'js.rec.counting':    'Recortyssagh\u2026',
+    'js.rec.done':        'Recortys jeant.',
+    'js.rec.nomic':       'Cha dod eh roshtyn y microphone: ',
+  }
+};
+
+function t(key) { return T[currentLang]?.[key] ?? T.en[key] ?? key; }
+
+function setLang(lang) {
+  currentLang = lang;
+  // innerHTML elements
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const v = T[lang]?.[el.dataset.i18n];
+    if (v !== undefined) el.innerHTML = v;
+  });
+  // placeholder attributes
+  document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+    const v = T[lang]?.[el.dataset.i18nPlaceholder];
+    if (v !== undefined) el.placeholder = v;
+  });
+  // data-label / data-loading (CSS content: attr(...))
+  document.querySelectorAll('[data-i18n-label]').forEach(el => {
+    const v = T[lang]?.[el.dataset.i18nLabel];
+    if (v !== undefined) el.dataset.label = v;
+  });
+  document.querySelectorAll('[data-i18n-loading]').forEach(el => {
+    const v = T[lang]?.[el.dataset.i18nLoading];
+    if (v !== undefined) el.dataset.loading = v;
+  });
+  document.querySelectorAll('.lang-flag').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+  document.documentElement.lang = lang;
+  try { localStorage.setItem('gaelg-lang', lang); } catch(e) {}
+}
+
+// Restore saved language preference
+(function() {
+  let saved; try { saved = localStorage.getItem('gaelg-lang'); } catch(e) {}
+  if (saved && T[saved]) setLang(saved);
+})();
+const triskLeft=document.getElementById('triskLeft'), triskRight=document.getElementById('triskRight');
+
+async function withSpin(fn) {
+  return await fn();
+}
+
+const splash = document.getElementById('splash');
+
+function selectSplashTab(name) {
+  splash.classList.add('collapsed');
+  document.body.classList.remove('at-home');
+  document.querySelectorAll('.splash-tab-btn[data-tab]').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.toggle('active', p.id==='tab-'+name));
+  window.scrollTo(0,0);
+}
+function goHome() {
+  splash.classList.remove('collapsed');
+  document.body.classList.add('at-home');
+  window.scrollTo(0,0);
+}
+function switchTab(name) { selectSplashTab(name); }
+
+// Start in home state
+document.body.classList.add('at-home');
+
+const textInput=document.getElementById('textInput'), charCount=document.getElementById('charCount');
+const synthBtn=document.getElementById('synthBtn'), resultCard=document.getElementById('resultCard');
+const resultLabel=document.getElementById('resultLabel'), resultBody=document.getElementById('resultBody');
+const histSec=document.getElementById('historySection'), histList=document.getElementById('historyList');
+const hiddenAudio=document.getElementById('hiddenAudio');
+const WAVE_HEIGHTS=[18,28,36,22,32,36,28,14,28,36,22,18];
+
+textInput.addEventListener('input',()=>{
+  const n=textInput.value.length;
+  charCount.textContent=`${n} / ${MAX_CHARS}`;
+  charCount.classList.toggle('warn',n>MAX_CHARS*0.9);
+});
+
+let selectedGender = 'female';
+document.querySelectorAll('.gender-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.gender-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    selectedGender = btn.dataset.gender;
+  });
+});
+
+synthBtn.addEventListener('click', async () => {
+  const text = textInput.value.trim();
+  if (!text) { flashErr(t('js.err.empty')); return; }
+  setLoading(synthBtn, true);
+  hideResult();
+  await withSpin(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/synthesize`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, gender: selectedGender})});
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Synthesis failed.');
+      showAudio(data.audio_url, data.filename, text);
+      addHistory(text, data.audio_url, data.filename);
+    } catch(err) { showError(err.message || 'An unexpected error occurred.'); }
+  });
+  setLoading(synthBtn, false);
+});
+
+function showAudio(url,filename,text) {
+  resultCard.className='result-card visible'; resultCard.style.display=''; resultLabel.textContent=t('js.lbl.output');
+  const audioUrl=`${API_BASE}${url}`;
+  resultBody.innerHTML=`
+    <p style="font-family:var(--sans);font-size:1rem;font-weight:300;line-height:1.7;margin-bottom:1.25rem;">${escHtml(text)}</p>
+    <div class="waveform-wrap" id="playerWrap">
+      <button id="playPauseBtn" style="background:none;border:none;cursor:pointer;color:var(--orange-mid);font-size:1.3rem;flex-shrink:0;padding:0 0.25rem;" title="Play / Pause">▶</button>
+      <span id="curTime" style="font-family:var(--mono);font-size:0.67rem;color:#a09585;min-width:3em;">0:00</span>
+      <input id="seekBar" type="range" min="0" max="100" value="0" step="0.1"
+        style="flex:1;accent-color:var(--orange-mid);cursor:pointer;height:4px;" />
+      <span id="durTime" style="font-family:var(--mono);font-size:0.67rem;color:#a09585;min-width:3em;text-align:right;">—</span>
+    </div>
+    <div class="audio-actions">
+      <span class="audio-meta">${escHtml(filename)}</span>
+      <a class="dl-btn" href="${audioUrl}" download="${escHtml(filename)}">${t('js.download')}</a>
+    </div>`;
+  const audio = new Audio(audioUrl);
+  const playBtn = document.getElementById('playPauseBtn');
+  const seekBar = document.getElementById('seekBar');
+  const curTime = document.getElementById('curTime');
+  const durTime = document.getElementById('durTime');
+  function fmt(s) { return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+  audio.addEventListener('loadedmetadata', () => { durTime.textContent = fmt(audio.duration); });
+  audio.addEventListener('timeupdate', () => {
+    curTime.textContent = fmt(audio.currentTime);
+    if (audio.duration) seekBar.value = (audio.currentTime / audio.duration) * 100;
+  });
+  audio.addEventListener('ended', () => { playBtn.textContent = '▶'; seekBar.value = 0; });
+  playBtn.addEventListener('click', () => {
+    if (audio.paused) { audio.play(); playBtn.textContent = '⏸'; }
+    else { audio.pause(); playBtn.textContent = '▶'; }
+  });
+  seekBar.addEventListener('input', () => { audio.currentTime = (seekBar.value / 100) * audio.duration; });
+}
+function hideResult() { resultCard.className='result-card'; resultCard.style.display='none'; }
+function showError(msg) { resultCard.className='result-card visible error'; resultCard.style.display=''; resultLabel.textContent=t('js.lbl.error'); resultBody.innerHTML=`<div class="error-msg">⚠ ${msg}</div>`; }
+function flashErr(msg) { showError(msg); resultCard.style.display='block'; }
+
+const history=[];
+function addHistory(text,url,filename) { history.unshift({text,url:`${API_BASE}${url}`,filename}); if(history.length>8)history.pop(); renderHistory(); }
+function renderHistory() {
+  if(!history.length){histSec.style.display='none';return;}
+  histSec.style.display='block';
+  histList.innerHTML=history.map((item,i)=>`<li class="history-item"><span class="hi-text">${escHtml(item.text)}</span><button class="play-prev" data-idx="${i}">${t('js.play')}</button><a class="dl-btn" href="${item.url}" download="${item.filename}" style="text-decoration:none">↓</a></li>`).join('');
+  histList.querySelectorAll('.play-prev').forEach(b=>b.addEventListener('click',()=>{hiddenAudio.src=history[+b.dataset.idx].url;hiddenAudio.play();}));
+}
+
+// ── Listen: file input + drag-and-drop ────────────────────────────────
+let asrFile = null;
+const uploadZone = document.getElementById('uploadZone');
+const audioFileInput = document.getElementById('audioFile');
+const selectedFileName = document.getElementById('selectedFileName');
+const recordBtn = document.getElementById('recordBtn');
+const recordStatus = document.getElementById('recordStatus');
+
+function checkDurationAndSet(f, cb) {
+  const url = URL.createObjectURL(f);
+  const tmp = new Audio(url);
+  tmp.addEventListener('loadedmetadata', () => {
+    URL.revokeObjectURL(url);
+    if (tmp.duration > 30) {
+      // Show error in upload zone
+      const rc = document.getElementById('transcribeResult'), rb = document.getElementById('transcribeBody');
+      rc.className='result-card visible error'; rc.style.display='';
+      rb.innerHTML='<div class="error-msg">⚠ Audio cannot be longer than 30 seconds (this file is ' + Math.round(tmp.duration) + 's).</div>';
+      clearAsrFile();
+      if (cb) cb(false);
+    } else {
+      setAsrFile(f);
+      if (cb) cb(true);
+    }
+  });
+  // Fallback: if metadata never loads (some formats), accept the file
+  tmp.addEventListener('error', () => { URL.revokeObjectURL(url); setAsrFile(f); if (cb) cb(true); });
+}
+
+function setAsrFile(f) {
+  asrFile = f;
+  document.getElementById('selectedFileName').textContent = f.name;
+  document.getElementById('uzPrompt').style.display = 'none';
+  const sel = document.getElementById('uzSelected');
+  sel.style.display = 'flex';
+  recordStatus.textContent = '';
+}
+function clearAsrFile() {
+  asrFile = null;
+  document.getElementById('selectedFileName').textContent = '';
+  document.getElementById('uzPrompt').style.display = 'flex';
+  document.getElementById('uzSelected').style.display = 'none';
+  audioFileInput.value = '';
+}
+
+uploadZone.addEventListener('click', (e) => {
+  if (asrFile) return;  // file already selected; remove button handles clearing
+  audioFileInput.click();
+});
+document.addEventListener('click', (e) => {
+});
+document.getElementById('clearFileBtn').addEventListener('click', () => {
+  clearAsrFile();
+  recordStatus.textContent = '';
+});
+audioFileInput.addEventListener('change', () => {
+  const f = audioFileInput.files[0];
+  if (!f) return;
+  checkDurationAndSet(f);
+});
+uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.style.borderColor='var(--orange-mid)'; });
+uploadZone.addEventListener('dragleave', () => { uploadZone.style.borderColor=''; });
+uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.style.borderColor=''; const f=e.dataTransfer.files[0]; if(f) checkDurationAndSet(f); });
+
+// ── Listen: microphone recording ──────────────────────────────────────
+let mediaRecorder = null, recordedChunks = [];
+
+function setRecording(on) {
+  recordBtn.classList.toggle('loading', on);
+  recordBtn.classList.toggle('recording', on);
+}
+
+recordBtn.addEventListener('click', async () => {
+  if (mediaRecorder && mediaRecorder.state === 'recording') {
+    mediaRecorder.stop();
+    return;
+  }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(stream);
+    mediaRecorder.ondataavailable = e => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+      stream.getTracks().forEach(t => t.stop());
+      setRecording(false);
+      const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+      const f = new File([blob], 'recording.webm', { type: 'audio/webm' });
+      checkDurationAndSet(f, (ok) => {
+        if (!ok) recordStatus.textContent = '';
+      });
+    };
+    mediaRecorder.start();
+    setRecording(true);
+    let recSecs = 0;
+    const recTimer = setInterval(() => {
+      recSecs++;
+      const left = 30 - recSecs;
+      recordStatus.textContent = left > 0 ? `${t('js.rec.counting')} (${left}s)` : t('js.rec.done');
+      if (recSecs >= 30) { clearInterval(recTimer); if (mediaRecorder.state === 'recording') mediaRecorder.stop(); }
+    }, 1000);
+    mediaRecorder.addEventListener('stop', () => clearInterval(recTimer), { once: true });
+    asrFile = null; clearAsrFile();
+  } catch(err) {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      recordStatus.textContent = 'Recording requires HTTPS — please upload a file instead.';
+    } else if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      recordStatus.textContent = 'Microphone permission denied. Please allow access in your browser.';
+    } else {
+      recordStatus.textContent = t('js.rec.nomic') + err.message;
+    }
+  }
+});
+
+// ── Listen: transcribe ────────────────────────────────────────────────
+document.getElementById('transcribeBtn').addEventListener('click', async () => {
+  const rc = document.getElementById('transcribeResult'), rb = document.getElementById('transcribeBody');
+  if (!asrFile) {
+    rc.className='result-card visible error';
+    rb.innerHTML=`<div class="error-msg">⚠ Please select or record an audio file first.</div>`;
+    return;
+  }
+  setLoading(document.getElementById('transcribeBtn'), true);
+  rc.className='result-card'; rc.style.display='none';
+  await withSpin(async () => {
+    try {
+      const form = new FormData();
+      form.append('file', asrFile, asrFile.name);
+      const res = await fetch(`${API_BASE}/transcribe`, { method: 'POST', body: form });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || t('js.err.transcribe'));
+      rc.className='result-card visible'; rc.style.display='';
+      const objUrl = URL.createObjectURL(asrFile);
+      rb.innerHTML=`
+        <div class="waveform-wrap" id="asrPlayerWrap" style="background:var(--orange-pale);border-color:var(--orange-rule);">
+          <button id="asrPlayBtn" style="background:none;border:none;cursor:pointer;color:var(--orange-mid);font-size:1.3rem;flex-shrink:0;padding:0 0.25rem;" title="Play / Pause">▶</button>
+          <span id="asrCurTime" style="font-family:var(--mono);font-size:0.67rem;color:#a09585;min-width:3em;">0:00</span>
+          <input id="asrSeekBar" type="range" min="0" max="100" value="0" step="0.1"
+            style="flex:1;accent-color:var(--orange-mid);cursor:pointer;height:4px;" />
+          <span id="asrDurTime" style="font-family:var(--mono);font-size:0.67rem;color:#a09585;min-width:3em;text-align:right;">—</span>
+        </div>
+        <p style="font-family:var(--sans);font-size:1rem;font-weight:300;line-height:1.7;margin-top:1.1rem;">${escHtml(data.transcript)}</p>
+        <div style="font-family:var(--mono);font-size:0.62rem;color:#a09585;margin-top:0.75rem;">${escHtml(asrFile.name)}</div>`;
+      const asrAudio = new Audio(objUrl);
+      const asrPlayBtn = document.getElementById('asrPlayBtn');
+      const asrSeekBar = document.getElementById('asrSeekBar');
+      const asrCur = document.getElementById('asrCurTime');
+      const asrDur = document.getElementById('asrDurTime');
+      function asrFmt(s) { return `${Math.floor(s/60)}:${String(Math.floor(s%60)).padStart(2,'0')}`; }
+      asrAudio.addEventListener('loadedmetadata', () => { asrDur.textContent = asrFmt(asrAudio.duration); });
+      asrAudio.addEventListener('timeupdate', () => {
+        asrCur.textContent = asrFmt(asrAudio.currentTime);
+        if (asrAudio.duration) asrSeekBar.value = (asrAudio.currentTime / asrAudio.duration) * 100;
+      });
+      asrAudio.addEventListener('ended', () => { asrPlayBtn.textContent = '▶'; asrSeekBar.value = 0; });
+      asrPlayBtn.addEventListener('click', () => {
+        if (asrAudio.paused) { asrAudio.play(); asrPlayBtn.textContent = '⏸'; }
+        else { asrAudio.pause(); asrPlayBtn.textContent = '▶'; }
+      });
+      asrSeekBar.addEventListener('input', () => { asrAudio.currentTime = (asrSeekBar.value / 100) * asrAudio.duration; });
+    } catch(err) {
+      rc.className='result-card visible error'; rc.style.display='';
+      rb.innerHTML=`<div class="error-msg">⚠ ${escHtml(err.message || t('js.err.transcribe'))}</div>`;
+    }
+  });
+  setLoading(document.getElementById('transcribeBtn'), false);
+});
+
+document.getElementById('langSwap').addEventListener('click',()=>{
+  const s=document.getElementById('srcLang'),t=document.getElementById('tgtLang');
+  [s.value,t.value]=[t.value,s.value];
+  const n={'gv':'Manx','en':'English'};
+  document.getElementById('srcDisplay').textContent=n[s.value];
+  document.getElementById('tgtDisplay').textContent=n[t.value];
+  document.getElementById('translateInput').value='';
+  document.getElementById('translateOutput').textContent='';
+  document.getElementById('translateSpeakBtn').style.display='none';
+  document.getElementById('translateMicBtn').style.display=s.value==='gv'?'block':'none';
+});
+
+document.getElementById('translateBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('translateBtn');
+  const srcLang = document.getElementById('srcLang').value;
+  const tgtLang = document.getElementById('tgtLang').value;
+  const text = document.getElementById('translateInput').value.trim();
+  const out = document.getElementById('translateOutput');
+
+  if (!text) { out.textContent = t('js.err.empty'); return; }
+  if (srcLang === tgtLang) { out.textContent = t('js.err.samelang'); return; }
+
+  const direction = srcLang === 'gv' ? 'gv2en' : 'en2gv';
+  setLoading(btn, true);
+  out.textContent = '\u2026';
+
+  await withSpin(async () => {
+    try {
+      const res = await fetch(`${API_BASE}/translate`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({text, direction}),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || t('js.err.translate'));
+      out.textContent = data.translation;
+      const tgtLangVal = document.getElementById('tgtLang').value;
+      document.getElementById('translateSpeakBtn').style.display = tgtLangVal === 'gv' ? 'block' : 'none';
+    } catch(err) {
+      out.textContent = '\u26a0 ' + (err.message || t('js.err.translate'));
+    }
+  });
+  setLoading(btn, false);
+});
+
+// ── Translate: speak output ─────────────────────────────────────────────────
+document.getElementById('translateSpeakBtn').addEventListener('click', async () => {
+  const spkBtn = document.getElementById('translateSpeakBtn');
+  const text = document.getElementById('translateOutput').textContent.trim();
+  if (!text) return;
+  spkBtn.style.opacity='0.4'; spkBtn.disabled = true;
+  try {
+    const res = await fetch(`${API_BASE}/synthesize`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text, gender: 'female'})});
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.detail || 'Synthesis failed.');
+    new Audio(`${API_BASE}${data.audio_url}`).play();
+  } catch(err) { spkBtn.style.opacity='1'; spkBtn.disabled = false; return; }
+  spkBtn.style.opacity='1'; spkBtn.disabled = false;
+});
+
+// ── Translate: mic record → transcribe → fill input ─────────────────────────
+(function(){
+  let tMicRecorder=null, tMicChunks=[];
+  const micBtn=document.getElementById('translateMicBtn');
+  const MIC_SVG='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zM17.91 11c-.49 0-.9.36-.98.85C16.52 14.2 14.47 16 12 16s-4.52-1.8-4.93-4.15c-.08-.49-.49-.85-.98-.85-.61 0-1.09.54-1 1.14.49 3 2.89 5.35 5.91 5.78V20c0 .55.45 1 1 1s1-.45 1-1v-2.08c3.02-.43 5.42-2.78 5.91-5.78.1-.6-.39-1.14-1-1.14z"/></svg>';
+  micBtn.addEventListener('click', async ()=>{
+    if(tMicRecorder && tMicRecorder.state==='recording'){ tMicRecorder.stop(); return; }
+    try {
+      const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+      tMicChunks=[];
+      tMicRecorder=new MediaRecorder(stream);
+      tMicRecorder.ondataavailable=e=>{if(e.data.size>0)tMicChunks.push(e.data);};
+      tMicRecorder.onstop=async()=>{
+        stream.getTracks().forEach(t=>t.stop());
+        micBtn.classList.remove('recording');
+        micBtn.innerHTML=MIC_SVG;
+        micBtn.disabled=true;
+        try {
+          const blob=new Blob(tMicChunks,{type:'audio/webm'});
+          const form=new FormData();
+          form.append('file',new File([blob],'recording.webm',{type:'audio/webm'}));
+          const res=await fetch(`${API_BASE}/transcribe`,{method:'POST',body:form});
+          const data=await res.json();
+          if(!res.ok) throw new Error(data.detail||'Transcription failed.');
+          document.getElementById('translateInput').value=data.transcript;
+          if(data.transcript) document.getElementById('translateBtn').click();
+        } catch(err){ /* silently ignore */ }
+        micBtn.disabled=false;
+      };
+      tMicRecorder.start();
+      micBtn.classList.add('recording');
+      micBtn.innerHTML='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M6 6h12v12H6z"/></svg>';
+      setTimeout(()=>{ if(tMicRecorder&&tMicRecorder.state==='recording') tMicRecorder.stop(); },30000);
+    } catch(err){ micBtn.classList.remove('recording'); micBtn.innerHTML=MIC_SVG; }
+  });
+})();
+
+function setLoading(btn,on) { btn.disabled=on; btn.classList.toggle('loading',on); }
+
+function escHtml(s) { return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+</script>
+</body>
+</html>

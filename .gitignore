@@ -10,7 +10,6 @@ backend/outputs/
 *.pem
 *.key
 docs/
-frontend/
 issues/
 .env
 .vscode/
