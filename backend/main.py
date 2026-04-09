@@ -477,6 +477,8 @@ def load_mt():
 # ---------------------------------------------------------------------------
 
 def synthesize_text(text: str, output_path: str):
+    if generator is None or vocoder is None:
+        raise RuntimeError("TTS models not loaded")
     import torch
     import numpy as np
     from scipy.io.wavfile import write as wav_write
@@ -919,7 +921,7 @@ async def transcribe(
                 probe = subprocess.run(
                     ["ffprobe", "-v", "error", "-show_entries", "format=duration",
                      "-of", "default=noprint_wrappers=1:nokey=1", tmp_path],
-                    capture_output=True, text=True, timeout=10
+                    capture_output=True, text=True, timeout=5
                 )
                 duration = float(probe.stdout.strip())
                 if duration > 30.0:
