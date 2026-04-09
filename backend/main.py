@@ -82,19 +82,29 @@ def record_request(tech: str):
                 today_idx = i
                 break
 
+        def _safe_int(s):
+            try:
+                v = int(s.strip())
+                return v if v >= 0 else 0
+            except (ValueError, AttributeError):
+                return 0
+
         if today_idx is None:
             counts = {"tts": 0, "asr": 0, "mt": 0}
         else:
             # Parse existing: "2026-04-09 | TTS: 5 | ASR: 2 | MT: 3 | Total: 10"
             counts = {"tts": 0, "asr": 0, "mt": 0}
-            for part in lines[today_idx].split("|"):
-                part = part.strip()
-                if part.startswith("TTS:"):
-                    counts["tts"] = int(part.split(":")[1].strip())
-                elif part.startswith("ASR:"):
-                    counts["asr"] = int(part.split(":")[1].strip())
-                elif part.startswith("MT:"):
-                    counts["mt"] = int(part.split(":")[1].strip())
+            try:
+                for part in lines[today_idx].split("|"):
+                    part = part.strip()
+                    if part.startswith("TTS:"):
+                        counts["tts"] = _safe_int(part[4:])
+                    elif part.startswith("ASR:"):
+                        counts["asr"] = _safe_int(part[4:])
+                    elif part.startswith("MT:"):
+                        counts["mt"] = _safe_int(part[3:])
+            except Exception:
+                counts = {"tts": 0, "asr": 0, "mt": 0}  # Reset on corrupt line
 
         counts[tech] += 1
         total = sum(counts.values())
@@ -281,12 +291,19 @@ def check_rate_limit(ip: str):
     timestamps = [t for t in timestamps if t > window_start]
 
     if len(timestamps) >= RATE_LIMIT_REQUESTS:
-        retry_after = int(timestamps[0] - window_start) + 1
+        retry_after = int(timestamps[0] + RATE_LIMIT_WINDOW_SECONDS - now) + 1
         _rate_limit_store[ip] = timestamps
         return False, retry_after
 
     timestamps.append(now)
     _rate_limit_store[ip] = timestamps
+
+    # Evict IPs with no recent activity to prevent unbounded memory growth
+    if len(_rate_limit_store) > 10000:
+        cutoff = now - RATE_LIMIT_WINDOW_SECONDS
+        stale = [k for k, v in _rate_limit_store.items() if not v or v[-1] < cutoff]
+        for k in stale:
+            del _rate_limit_store[k]
     return True, 0
 
 
@@ -650,7 +667,8 @@ async def startup():
 
     # Warm-up TTS (optional — skip via SKIP_TTS_WARMUP=true)
     if model_status["tts"] and os.environ.get("SKIP_TTS_WARMUP", "false").lower() != "true":
-        _tmp = tempfile.mktemp(suffix=".wav")
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as _f:
+            _tmp = _f.name
         try:
             synthesize_text("Fastyr mie", _tmp)
             logger.info("✓ TTS warm-up complete")
@@ -712,7 +730,7 @@ class SynthesizeRequest(BaseModel):
 async def health_check():
     """Report server health and model availability."""
     return {
-        "status": "healthy" if any(model_status.values()) else "unhealthy",
+        "status": "healthy" if all(model_status.values()) else "unhealthy",
         "models": model_status,
         "errors": model_errors if model_errors else None,
     }
@@ -775,7 +793,7 @@ async def synthesize(req: SynthesizeRequest, request: Request):
 
     filename    = f"{uuid.uuid4().hex}.wav"
     output_path = os.path.join(OUTPUT_DIR, filename)
-    loop        = asyncio.get_event_loop()
+    loop        = asyncio.get_running_loop()
 
     # Check if voice conversion is available (REQUIRED for all requests)
     if not model_status["vc"]:
@@ -793,9 +811,13 @@ async def synthesize(req: SynthesizeRequest, request: Request):
             )
         except asyncio.TimeoutError:
             logger.exception(f"Synthesis timeout (>{SYNTHESIZE_TIMEOUT_SECONDS}s)")
+            if os.path.exists(output_path):
+                os.unlink(output_path)
             raise HTTPException(status_code=504, detail=f"Synthesis timeout (max {SYNTHESIZE_TIMEOUT_SECONDS}s)")
         except Exception as e:
             logger.exception("Synthesis failed")
+            if os.path.exists(output_path):
+                os.unlink(output_path)
             raise HTTPException(status_code=500, detail=f"Synthesis error: {e}")
 
     # Voice conversion is MANDATORY for ALL requests (privacy protection)
@@ -809,9 +831,13 @@ async def synthesize(req: SynthesizeRequest, request: Request):
             logger.info(f"Voice conversion complete ({req.gender})")
         except asyncio.TimeoutError:
             logger.exception(f"Voice conversion timeout (>{CONVERT_TIMEOUT_SECONDS}s)")
+            if os.path.exists(output_path):
+                os.unlink(output_path)
             raise HTTPException(status_code=504, detail=f"Voice conversion timeout (max {CONVERT_TIMEOUT_SECONDS}s)")
         except Exception as e:
             logger.exception("Voice conversion failed")
+            if os.path.exists(output_path):
+                os.unlink(output_path)
             raise HTTPException(status_code=500, detail=f"Voice conversion error: {e}")
 
     return {"audio_url": f"/audio/{filename}", "filename": filename}
@@ -858,7 +884,7 @@ async def transcribe(
                      "audio/mp4", "audio/ogg", "audio/webm", "audio/flac",
                      "application/octet-stream"}
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     results = []
 
     for file in files:
@@ -943,7 +969,7 @@ async def translate(req: TranslateRequest, request: Request):
     if not req.text.strip():
         raise HTTPException(status_code=400, detail="Empty input text.")
 
-    loop = asyncio.get_event_loop()
+    loop = asyncio.get_running_loop()
     try:
         async with mt_sem:
             translation = await asyncio.wait_for(
@@ -959,11 +985,3 @@ async def translate(req: TranslateRequest, request: Request):
         raise HTTPException(status_code=500, detail=f"Translation error: {e}")
 
 
-@app.get("/health")
-async def health():
-    return {
-        "status": "ok",
-        "tts":    generator is not None,
-        "asr":    whisper_model is not None,
-        "mt":     len(nllb_models) == 2,
-    }

@@ -7,10 +7,19 @@ LOG_FILE="/exp/exp1/acp24csb/web_platform/logs/healthcheck.log"
 MAX_LOG_LINES=10000
 TIMESTAMP=$(date '+%Y-%m-%d %H:%M:%S')
 
-TELEGRAM_TOKEN="8641754877:AAGberu0hFaq0Fgi4BkkqD6CV_XqM_WmUmo"
-TELEGRAM_CHAT_ID="5269120750"
+# Load credentials from .env
+ENV_FILE="/exp/exp1/acp24csb/web_platform/.env"
+if [ -f "$ENV_FILE" ]; then
+    # shellcheck disable=SC1090
+    source "$ENV_FILE"
+fi
+
+if [ -z "$TELEGRAM_TOKEN" ] || [ -z "$TELEGRAM_CHAT_ID" ]; then
+    echo "WARNING: TELEGRAM_TOKEN or TELEGRAM_CHAT_ID not set — notifications disabled" >&2
+fi
 
 notify() {
+    [ -z "$TELEGRAM_TOKEN" ] && return 0
     curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_TOKEN}/sendMessage" \
         -d chat_id="${TELEGRAM_CHAT_ID}" \
         -d text="$1" \
