@@ -1,29 +1,17 @@
-# Python
 venv/
 __pycache__/
 *.pyc
 *.pyo
-
-# Logs
 logs/
 *.log
-
-# Audio outputs
 outputs/
 backend/outputs/
 *.wav
-
-# TLS certificates
 *.pem
 *.key
-
-# Frontend (lives on separate server, has its own repo)
+docs/
 frontend/
-frontend-old/
-
-# Secrets / local config
+issues/
 .env
-
-# Editor
 .vscode/
 *.swp
