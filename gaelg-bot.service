@@ -1,0 +1,20 @@
+[Unit]
+Description=Gaelg AI Telegram Bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/exp/exp1/acp24csb/web_platform
+EnvironmentFile=/exp/exp1/acp24csb/web_platform/.env
+Environment="LOG_DIR=/exp/exp1/acp24csb/web_platform/logs"
+Environment="OUTPUT_DIR=/exp/exp1/acp24csb/web_platform/outputs"
+ExecStart=/usr/bin/python3 /exp/exp1/acp24csb/web_platform/telegram_bot.py
+Restart=on-failure
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=gaelg-bot
+
+[Install]
+WantedBy=default.target
